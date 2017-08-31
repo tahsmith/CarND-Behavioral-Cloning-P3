@@ -5,7 +5,7 @@ from model import *
 from pickle import dump
 from operator import itemgetter
 
-batch_size = 2 ** 10
+batch_size = 128
 columns = load_driving_log('data/driving_log.csv')
 
 validation_ratio = 0.2

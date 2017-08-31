@@ -58,8 +58,9 @@ def validation_batches():
 
 def train(model):
     model.compile(loss='mse', optimizer='adam')
-    model.fit_generator(training_batches(), epochs=10, steps_per_epoch=6, validation_data=validation_batches(),
-                        validation_steps=2)
+    model.fit_generator(training_batches(), epochs=1, steps_per_epoch=len(glob('data_cache/training-*.p')),
+                        validation_data=validation_batches(),
+                        validation_steps=len(glob('data_cache/validation-*.p')))
     model.save('model.h5')
 
 
@@ -140,8 +141,10 @@ def shift_img_rand(image, rand_range=5):
 
 def make_training_batch(left, center, right, steering):
     left, center, right = [preprocess_images(load_images(x)) for x in (left, center, right)]
-    center_shifted_left = shift_image(center, (0, 40))
-    center_shifted_right = shift_image(center, (0, -40))
+    shifted_images = np.empty((0,) + center.shape[1:])
+    shifts = [-40, 40]
+    for shift in shifts:
+        shifted_images = np.concatenate((shifted_images, shift_image(center, (0, shift))), axis=0)
 
     images = np.concatenate(
         list(map(
@@ -149,20 +152,21 @@ def make_training_batch(left, center, right, steering):
             (center,
              left,
              right,
-             center_shifted_left,
-             center_shifted_right)
+             shifted_images)
         )),
         axis=0)
 
     lr_cam_offset = 0.2
-    shift_offset = 0.4
+
+    shifted_steering = np.empty((0,))
+    for shift in shifts:
+        shifted_steering = np.concatenate((shifted_steering, steering + np.arctan(shift * -0.01)))
 
     steering = np.concatenate((
         steering,
         steering + lr_cam_offset,
         steering - lr_cam_offset,
-        steering - shift_offset,
-        steering + shift_offset
+        shifted_steering
     ))
 
     images = np.concatenate((images, flip(images)), axis=0)
