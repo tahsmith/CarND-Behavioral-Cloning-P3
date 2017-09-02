@@ -1,3 +1,4 @@
+from itertools import zip_longest
 from math import ceil
 import sys
 
@@ -8,7 +9,7 @@ from pickle import dump
 from operator import itemgetter
 
 batch_size = 2 ** 10
-columns = load_driving_log('data/driving_log.csv', slice(0, 128))
+columns = load_driving_log('data/driving_log.csv', slice(0, 129))
 
 validation_ratio = 0.2
 total_records = columns[0].shape[0]
@@ -19,7 +20,8 @@ columns = shuffle(*columns)
 def grouper(iterable, n):
     """Collect data into fixed-length chunks or blocks"""
     args = [iter(iterable)] * n
-    return zip(*args)
+    for items in zip_longest(*args, fillvalue=None):
+        yield tuple(item for item in items if item is not None)
 
 
 validation_set_count = int(ceil(total_records * validation_ratio))
