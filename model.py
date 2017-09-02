@@ -7,28 +7,39 @@ import numpy as np
 import pandas as pd
 from keras.models import Sequential
 from keras.layers import Dense, Flatten, Conv2D, InputLayer, Dropout, MaxPool2D, Cropping2D, Lambda
+from keras.callbacks import ModelCheckpoint
 import cv2
 from pickle import load
+import keras.backend as K
 
 from sklearn.utils import shuffle
 
 
+def to_grey(x):
+    return K.mean(x, axis=3, keepdims=True)
+
+
 def build_model():
-    image_shape = (85, 240, 1)
+    image_shape = (85, 240, 3)
     model = Sequential()
     model.add(InputLayer(input_shape=image_shape))
     model.add(Lambda(lambda x: (x / 255.0) - 0.5))
-    model.add(Conv2D(24, kernel_size=(5, 5), strides=(2, 2), activation='relu'))
-    model.add(Conv2D(36, kernel_size=(5, 5), strides=(2, 2), activation='relu'))
-    model.add(Conv2D(48, kernel_size=(5, 5), strides=(2, 2), activation='relu'))
-    model.add(Conv2D(64, kernel_size=(3, 3), activation='relu'))
-    model.add(Conv2D(64, kernel_size=(3, 3), activation='relu'))
+    model.add(Conv2D(1, kernel_size=(1, 1)))
+    model.add(Conv2D(6, kernel_size=(5, 5), activation='relu'))
+    model.add(MaxPool2D())
+    model.add(Dropout(0.25))
+
+    model.add(Conv2D(16, kernel_size=(5, 5), activation='relu'))
+    model.add(MaxPool2D())
+    model.add(Dropout(0.25))
 
     model.add(Flatten())
-    model.add(Dense(1200, activation='relu'))
-    model.add(Dense(100, activation='sigmoid'))
-    model.add(Dense(50, activation='sigmoid'))
-    model.add(Dense(10, activation='sigmoid'))
+    model.add(Dense(120, activation='relu'))
+    model.add(Dropout(0.25))
+
+    model.add(Dense(84, activation='sigmoid'))
+    model.add(Dropout(0.25))
+
     model.add(Dense(1))
 
     return model
@@ -54,10 +65,11 @@ def validation_batches():
 
 def train(model):
     model.compile(loss='mse', optimizer='adam')
-    model.fit_generator(training_batches(), epochs=1, steps_per_epoch=len(glob('data_cache/training-*.p')),
+    checkpoint = ModelCheckpoint('model.h5', monitor='val_loss', save_best_only=True, mode='min')
+    model.fit_generator(training_batches(), epochs=5, steps_per_epoch=len(glob('data_cache/training-*.p')),
                         validation_data=validation_batches(),
-                        validation_steps=len(glob('data_cache/validation-*.p')))
-    model.save('model.h5')
+                        validation_steps=len(glob('data_cache/validation-*.p')),
+                        callbacks=[checkpoint])
 
 
 def load_images(paths):
@@ -120,13 +132,13 @@ def crop_image(img):
 
 
 def preprocess(image):
-    return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY).reshape((160, 320, 1))[50:135, 40:-40, :]
+    return cv2.cvtColor(image, cv2.COLOR_BGR2HLS_FULL)[50:135, 40:-40, :]
 
 
 def preprocess_images(images):
-    processed_images = np.empty([images.shape[0], 160, 320, 1])
+    processed_images = np.empty([images.shape[0], 160, 320, 3])
     for i in range(images.shape[0]):
-        processed_images[i, :, :, :] = cv2.cvtColor(images[i, :, :, :], cv2.COLOR_BGR2GRAY).reshape((160, 320, 1))
+        processed_images[i, :, :, :] = cv2.cvtColor(images[i, :, :, :], cv2.COLOR_BGR2HLS_FULL)
     return processed_images
 
 
@@ -138,7 +150,7 @@ def shift_img_rand(image, rand_range=5):
 def make_training_batch(left, center, right, steering):
     left, center, right = [preprocess_images(load_images(x)) for x in (left, center, right)]
     shifted_images = np.empty((0,) + center.shape[1:])
-    shifts = [-40, 40]
+    shifts = [-40, -10, 10, 40]
     for shift in shifts:
         shifted_images = np.concatenate((shifted_images, shift_image(center, (0, shift))), axis=0)
 
