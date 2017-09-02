@@ -6,18 +6,11 @@ from glob import glob
 import numpy as np
 import pandas as pd
 from keras.models import Sequential
-from keras.layers import Dense, Flatten, Conv2D, InputLayer, Dropout, MaxPool2D, Cropping2D, Lambda
+from keras.layers import Dense, Flatten, Conv2D, InputLayer, Dropout, Lambda
 from keras.callbacks import ModelCheckpoint
 import cv2
 from pickle import load
-import keras.backend as K
-
-from sklearn.utils import shuffle
-
-
-def to_grey(x):
-    return K.mean(x, axis=3, keepdims=True)
-
+import sklearn.utils
 
 def build_model():
     image_shape = (85, 240, 3)
@@ -41,7 +34,7 @@ def build_model():
     model.add(Flatten())
     model.add(Dense(1200, activation='relu'))
     model.add(Dropout(0.25))
-    
+
     model.add(Dense(100, activation='relu'))
     model.add(Dropout(0.25))
 
@@ -87,7 +80,7 @@ def load_images(paths):
     images = np.empty([len(paths), 160, 320, 3], dtype=np.uint8)
 
     for i, path in enumerate(paths):
-        image = cv2.imread(path)
+        image = cv2.imread(path.strip())
         images[i, :, :, :] = image
 
     return images
@@ -143,13 +136,13 @@ def crop_image(img):
 
 
 def preprocess(image):
-    return cv2.cvtColor(image, cv2.COLOR_BGR2HLS_FULL)[50:135, 40:-40, :]
+    return cv2.cvtColor(image, cv2.COLOR_BGR2HSV_FULL)[50:135, 40:-40, :]
 
 
 def preprocess_images(images):
     processed_images = np.empty([images.shape[0], 160, 320, 3])
     for i in range(images.shape[0]):
-        processed_images[i, :, :, :] = cv2.cvtColor(images[i, :, :, :], cv2.COLOR_BGR2HLS_FULL)
+        processed_images[i, :, :, :] = cv2.cvtColor(images[i, :, :, :], cv2.COLOR_BGR2HSV_FULL)
     return processed_images
 
 
@@ -192,6 +185,17 @@ def make_training_batch(left, center, right, steering):
     steering = np.concatenate((steering, -steering))
 
     return images, steering
+
+
+def generate_training_points(log_data, shuffle=True):
+    for left, center, right, steering in log_data:
+        images, steering = make_training_batch([left], [center], [right], np.array([steering]))
+
+        if shuffle:
+            images, steering = sklearn.utils.shuffle(images, steering)
+
+        for i in range(images.shape[0]):
+            yield images[i, :, :, :], steering[i]
 
 
 def main():
