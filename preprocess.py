@@ -1,4 +1,3 @@
-from itertools import zip_longest
 from math import ceil
 import sys
 
@@ -9,7 +8,7 @@ from pickle import dump
 from operator import itemgetter
 
 batch_size = 2 ** 10
-columns = load_driving_log('data/driving_log.csv')
+columns = load_driving_log('data/driving_log.csv', slice(0, 128))
 
 validation_ratio = 0.2
 total_records = columns[0].shape[0]
@@ -17,10 +16,10 @@ total_records = columns[0].shape[0]
 columns = shuffle(*columns)
 
 
-def grouper(iterable, n, fillvalue=None):
+def grouper(iterable, n):
     """Collect data into fixed-length chunks or blocks"""
     args = [iter(iterable)] * n
-    return zip_longest(*args, fillvalue=fillvalue)
+    return zip(*args)
 
 
 validation_set_count = int(ceil(total_records * validation_ratio))
@@ -42,9 +41,9 @@ for i, batch in enumerate(grouper(generate_training_points(zip(*training_set)), 
     steering = np.array(steering)
     with open('data_cache/training-{}.p'.format(i), 'wb') as file:
         dump((images, steering), file)
+    augmented_training_set_count += steering.shape[0]
     sys.stdout.write('Processed {}\n'.format(augmented_training_set_count))
     sys.stdout.flush()
-    augmented_training_set_count += steering.shape[0]
 
 for i in range(validation_set_count // batch_size + 1):
     end = min((i + 1) * batch_size, validation_set_count)
