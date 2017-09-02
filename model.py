@@ -24,20 +24,31 @@ def build_model():
     model = Sequential()
     model.add(InputLayer(input_shape=image_shape))
     model.add(Lambda(lambda x: (x / 255.0) - 0.5))
-    model.add(Conv2D(1, kernel_size=(1, 1)))
-    model.add(Conv2D(6, kernel_size=(5, 5), activation='relu'))
-    model.add(MaxPool2D())
+    model.add(Conv2D(24, kernel_size=(5, 5), strides=(2, 2), activation='relu'))
     model.add(Dropout(0.25))
 
-    model.add(Conv2D(16, kernel_size=(5, 5), activation='relu'))
-    model.add(MaxPool2D())
+    model.add(Conv2D(36, kernel_size=(5, 5), strides=(2, 2), activation='relu'))
     model.add(Dropout(0.25))
+
+    model.add(Conv2D(48, kernel_size=(5, 5), strides=(2, 2), activation='relu'))
+    model.add(Dropout(0.25))
+
+    model.add(Conv2D(64, kernel_size=(3, 3), strides=(1, 1), activation='relu'))
+    model.add(Dropout(0.25))
+
+    model.add(Conv2D(64, kernel_size=(3, 3), strides=(1, 1), activation='relu'))
 
     model.add(Flatten())
-    model.add(Dense(120, activation='relu'))
+    model.add(Dense(1200, activation='relu'))
+    model.add(Dropout(0.25))
+    
+    model.add(Dense(100, activation='relu'))
     model.add(Dropout(0.25))
 
-    model.add(Dense(84, activation='sigmoid'))
+    model.add(Dense(50, activation='sigmoid'))
+    model.add(Dropout(0.25))
+
+    model.add(Dense(10, activation='sigmoid'))
     model.add(Dropout(0.25))
 
     model.add(Dense(1))
