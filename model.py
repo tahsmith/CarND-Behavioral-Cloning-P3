@@ -154,7 +154,7 @@ def shift_img_rand(image, rand_range=5):
 def make_training_batch(left, center, right, steering):
     left, center, right = [preprocess_images(load_images(x)) for x in (left, center, right)]
     shifted_images = np.empty((0,) + center.shape[1:])
-    shifts = [-40, -10, 10, 40]
+    shifts = np.random.randint(-40, 40, (4,))
     for shift in shifts:
         shifted_images = np.concatenate((shifted_images, shift_image(center, (0, shift))), axis=0)
 
