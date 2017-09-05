@@ -9,7 +9,7 @@ from pickle import dump
 from operator import itemgetter
 
 batch_size = 2 ** 10
-columns = load_driving_log('data/driving_log.csv', slice(0, 129))
+columns = load_driving_log('data/driving_log.csv')
 
 validation_ratio = 0.2
 total_records = columns[0].shape[0]

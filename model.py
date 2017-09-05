@@ -60,7 +60,7 @@ def validation_batches():
 def train(model):
     model.compile(loss='mse', optimizer='adam')
     checkpoint = ModelCheckpoint('model.h5', monitor='val_loss', save_best_only=True, mode='min')
-    model.fit_generator(training_batches(), epochs=5, steps_per_epoch=len(glob('data_cache/training-*.p')),
+    model.fit_generator(training_batches(), epochs=10, steps_per_epoch=len(glob('data_cache/training-*.p')),
                         validation_data=validation_batches(),
                         validation_steps=len(glob('data_cache/validation-*.p')),
                         callbacks=[checkpoint])
@@ -146,7 +146,7 @@ def shift_img_rand(image, rand_range=5):
 def make_training_batch(left, center, right, steering):
     left, center, right = [preprocess_images(load_images(x)) for x in (left, center, right)]
     shifted_images = np.empty((0,) + center.shape[1:])
-    shifts = np.random.randint(-40, 40, (4,))
+    shifts = np.random.randint(-40, 40, (8,))
     for shift in shifts:
         shifted_images = np.concatenate((shifted_images, shift_image(center, (0, shift))), axis=0)
 
